@@ -22,6 +22,8 @@ def load_config():
         return cfg
 
 def generateHash():
+    # fuck i am covid +ve
+    
     pass
 
 def write_hashes():
@@ -65,7 +67,7 @@ for r in reqs :
     except :
         print("error occured during rendering",  traceback.print_exc() )
         continue
-    generateHash(ren)
+    hashval=generateHash(ren)
 
 
 
