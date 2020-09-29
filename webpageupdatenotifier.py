@@ -21,15 +21,20 @@ def load_config():
             exit()
         return cfg
 
-def generateHash():
+
+def generateHash(x):
+    hasher=hashlib.sha256()
+    print(type(x))
+    hasher.update(bytes(x,'utf-8'))
     # fuck i am covid +ve
-    
-    pass
+    return hasher.hexdigest()
+
 
 def write_hashes():
     pass
 
-
+def read_hashes():
+    pass
 
 cfg=load_config()
 nonjsurls=cfg["urls"]["nonjs"]
@@ -48,6 +53,8 @@ for url in nonjsurls:
         print("Generating session for url:",url)
         r=session.get(url,headers=headers,timeout=5,verify=False)#  todo verify 
         print(r.status_code,"----------------")
+        hashval=generateHash()
+        print(hashval)
         if(not(r.ok)):
             print("Got the page with code:",sess.status_code)
             print("skipping this url")
@@ -61,21 +68,19 @@ for url in nonjsurls:
 # now we got the a list of sessions 
 # next render them
 
+
+
 for r in reqs :
+    print(type(r),"-----------")
     try :
+        print("-------")
         ren=r.html.render()
-    except :
+        print(ren)
+    except :   
         print("error occured during rendering",  traceback.print_exc() )
         continue
-    hashval=generateHash(ren)
-
-
-
-
-
-
-
-
+    # hashval=generateHash(ren.text)
+    # print(hashval)
 
 
 
