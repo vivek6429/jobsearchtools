@@ -26,15 +26,38 @@ def generateHash(x):
     hasher=hashlib.sha256()
     print(type(x))
     hasher.update(bytes(x,'utf-8'))
-    # fuck i am covid +ve
+
     return hasher.hexdigest()
 
 
-def write_hashes():
-    pass
+def write_hashes_generated(hsdhdict,filename="hashes_generated.yaml"):
+    with open(filename, "w") as stream:
+        try :
+            write = yaml.dump({"hashes_generated":hsdhdict},stream)
+            print("hashes_generated written to file")
+            
+        except yaml.YAMLError as err :
+            print(err)
+            exit()
+    
 
-def read_hashes():
-    pass
+    
+
+def read_hashes_generated(filename="hashes_generated.yaml"):
+    try:
+        with open(filename, "r") as stream:
+            try :
+                read_hashes_generated = yaml.safe_load(stream)
+                return read_hashes_generated
+            except yaml.YAMLError as err :
+                print("Yaml error",err)
+                exit()
+    except FileNotFoundError:
+            print("file ",filename,"does not exist")
+            return None
+            
+
+
 
 cfg=load_config()
 nonjsurls=cfg["urls"]["nonjs"]
@@ -42,10 +65,16 @@ jsurls=cfg["urls"]["js"]
 useragent=random.choice(cfg["useragents"])
 headers={"User-Agent":useragent}
 
+saved_hashes_generated=read_hashes_generated()
+
+
+
+
+
 # int(*nonjsurls,sep="\n")
 # print("\n\n")
 # print(*jsurls,sep="\n")pr
-
+hashes_generated={}
 session = HTMLSession()
 reqs=[]
 for url in nonjsurls:
@@ -53,7 +82,8 @@ for url in nonjsurls:
         print("Generating session for url:",url)
         r=session.get(url,headers=headers,timeout=5,verify=False)#  todo verify 
         print(r.status_code,"----------------")
-        hashval=generateHash()
+        hashval=generateHash(r.text)
+        hashes_generated[url]=hashval
         print(hashval)
         if(not(r.ok)):
             print("Got the page with code:",sess.status_code)
@@ -65,22 +95,20 @@ for url in nonjsurls:
 
     reqs.append(r)
 
-# now we got the a list of sessions 
-# next render them
 
 
 
-for r in reqs :
-    print(type(r),"-----------")
-    try :
-        print("-------")
-        ren=r.html.render()
-        print(ren)
-    except :   
-        print("error occured during rendering",  traceback.print_exc() )
-        continue
-    # hashval=generateHash(ren.text)
-    # print(hashval)
+# for r in reqs :
+#     print(type(r),"-----------")
+#     try :
+#         print("-------")
+#         ren=r.html.render()
+#         print(ren)
+#     except :   
+#         print("error occured during rendering",  traceback.print_exc() )
+#         continue
+#     # hashval=generateHash(ren.text)
+#     # print(hashval)
 
 
 
