@@ -10,21 +10,27 @@ import hashlib
 import random,time,os
 from requests_html import HTMLSession
 import traceback
+from termcolor import colored
+import urllib3
+urllib3.disable_warnings()
 
-def load_config():
-    with open("config.yaml", "r") as stream:
-        try :
-            cfg = yaml.safe_load(stream)
-            # print(cfg)
-        except yaml.YAMLError as err :
-            print(err)
-            exit()
-        return cfg
+def load_file(filename="config.yaml"):
+    try :
+        with open(filename, "r") as stream:
+            try :
+                cfg = yaml.safe_load(stream)
+                # print(cfg)
+            except yaml.YAMLError as err :
+                print(err)
+                exit()
+            return cfg
+    except FileNotFoundError :
+        print("filenotfound")
+        return None
 
 
 def generateHash(x):
     hasher=hashlib.sha256()
-    print(type(x))
     hasher.update(bytes(x,'utf-8'))
 
     return hasher.hexdigest()
@@ -33,67 +39,127 @@ def generateHash(x):
 def write_hashes_generated(hsdhdict,filename="hashes_generated.yaml"):
     with open(filename, "w") as stream:
         try :
-            write = yaml.dump({"hashes_generated":hsdhdict},stream)
-            print("hashes_generated written to file")
+            write = yaml.dump({"hashes":hsdhdict},stream)
+            print(colored("generated hashes written to file","green"))
             
         except yaml.YAMLError as err :
-            print(err)
+            print(colored(err,"red"))
             exit()
     
+def comparinator(saved_hashes,generated_hashes,showhash=True):
+    common_keys= saved_hashes.keys() & generated_hashes.keys()
+    onlyin_saved = saved_hashes.keys() - generated_hashes.keys()
+    onlyin_generated = generated_hashes.keys() - saved_hashes.keys()
+    common_pairs= saved_hashes.items() & generated_hashes.items()
+    print(colored("NO changes for the following websites","blue"))
+
+    for i,e in enumerate(common_pairs):
+        print(colored( ( str(i+1)+") " + str(e[0]) ), "blue"))
+        if showhash == True :
+            print(saved_hashes[e[0]],"==",generated_hashes[e[0]]) # common_pairs is a set of tuples
+
+    print("\n")
+    print(colored("changes in the following webpages:","green"))
+    for key in common_keys:
+        if saved_hashes[key] != generated_hashes[key]:
+            print(colored(key,"yellow"))
+            if showhash == True:
+                print(saved_hashes[key],"!=",generated_hashes[key])
+                print()
+
+            
+
+    return onlyin_generated,onlyin_saved
+    
+
 
     
 
-def read_hashes_generated(filename="hashes_generated.yaml"):
-    try:
-        with open(filename, "r") as stream:
-            try :
-                read_hashes_generated = yaml.safe_load(stream)
-                return read_hashes_generated
-            except yaml.YAMLError as err :
-                print("Yaml error",err)
-                exit()
-    except FileNotFoundError:
-            print("file ",filename,"does not exist")
-            return None
-            
+    
+
+
+if __name__=="__main__":
+    cfg=load_file("config.yaml")
+    if cfg == None:
+        print("NO config file")
+        exit()
+    nonjsurls=cfg["urls"]["nonjs"]
+    jsurls=cfg["urls"]["js"]
+    useragent=random.choice(cfg["useragents"])
+    headers={"User-Agent":useragent}
+    saved_hashes=load_file("hashes2.yaml")
+    if not(saved_hashes == None):
+        saved_hashes=saved_hashes["hashes"]
+    hashes_generated={}
+    session = HTMLSession()
+    reqs=[]
 
 
 
-cfg=load_config()
-nonjsurls=cfg["urls"]["nonjs"]
-jsurls=cfg["urls"]["js"]
-useragent=random.choice(cfg["useragents"])
-headers={"User-Agent":useragent}
-
-saved_hashes_generated=read_hashes_generated()
-
-
-
-
-
-# int(*nonjsurls,sep="\n")
-# print("\n\n")
-# print(*jsurls,sep="\n")pr
-hashes_generated={}
-session = HTMLSession()
-reqs=[]
-for url in nonjsurls:
-    try :
-        print("Generating session for url:",url)
-        r=session.get(url,headers=headers,timeout=5,verify=False)#  todo verify 
-        print(r.status_code,"----------------")
-        hashval=generateHash(r.text)
-        hashes_generated[url]=hashval
-        print(hashval)
-        if(not(r.ok)):
-            print("Got the page with code:",sess.status_code)
-            print("skipping this url")
+    for url in nonjsurls:
+        try :
+            print("Generating session for url:",url)
+            r=session.get(url,headers=headers,timeout=5,verify=False)#  todo verify 
+            hashval=generateHash(r.text)
+            hashes_generated[url]=hashval
+            print(colored(hashval,"green"))
+            if(not(r.ok)):
+                print(colored(("Got the page with code:"+str(r.status_code)),"red"))
+                print(colored("skipping this url","blue"))
+                continue
+        except :
+            print(colored("error occured / timeout skipping this:-----\n","red"))
+            print(traceback.print_exc() )
             continue
-    except :
-        print("error occured / timeout skipping this:-----\n",  traceback.print_exc() )
-        continue
+    
+    if saved_hashes == None:
+        print(colored("No saved hashes found","yellow"))
+        write_hashes_generated(hashes_generated,"hashes2.yaml")
+        print("hashes recorded exiting ")
+        exit()
 
-    reqs.append(r)
+    onlyin_generated,onlyin_saved=comparinator(saved_hashes,hashes_generated)
+    if onlyin_generated != None:
+        print("adding and saving new_hashes generated/ new_urls found in config")
+        for i in onlyin_generated:
+            saved_hashes[i]=hashes_generated[i]
+            print(i)
+        write_hashes_generated(saved_hashes,"hashes2.yaml")
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
