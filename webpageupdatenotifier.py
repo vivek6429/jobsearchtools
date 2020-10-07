@@ -39,7 +39,7 @@ def generateHash(x):
 def write_hashes_generated(hsdhdict,filename="hashes_generated.yaml"):
     with open(filename, "w") as stream:
         try :
-            write = yaml.dump({"hashes":hsdhdict},stream)
+            yaml.dump({"hashes":hsdhdict},stream)
             print(colored("generated hashes written to file","green"))
             
         except yaml.YAMLError as err :
